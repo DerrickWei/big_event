@@ -3,6 +3,7 @@ package com.derrick.big_event.controller;
 import com.derrick.big_event.pojo.Result;
 import com.derrick.big_event.pojo.User;
 import com.derrick.big_event.service.UserService;
+import com.derrick.big_event.utils.JwtUtil;
 import com.derrick.big_event.utils.Md5Util;
 import jakarta.validation.constraints.Pattern;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -10,6 +11,9 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.util.HashMap;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/v1/user")
@@ -43,7 +47,12 @@ public class UserController {
         if (user != null) {
             // Check if user password is correct
             if (Md5Util.checkPassword(password, user.getPassword())) {
-                return Result.success("JWT Token");
+
+                Map<String, Object> claims = new HashMap<>();
+                claims.put("id", user.getId());
+                claims.put("username", username);
+
+                return Result.success(JwtUtil.genToken(claims));
             }
         }
 
