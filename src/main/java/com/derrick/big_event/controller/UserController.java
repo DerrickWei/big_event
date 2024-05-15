@@ -7,7 +7,9 @@ import com.derrick.big_event.utils.JwtUtil;
 import com.derrick.big_event.utils.Md5Util;
 import com.derrick.big_event.utils.ThreadLocalUtil;
 import jakarta.validation.constraints.Pattern;
+import org.hibernate.validator.constraints.URL;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.util.StringUtils;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
@@ -67,5 +69,54 @@ public class UserController {
         String username = (String) map.get("username");
 
         return Result.success(userService.findByUserName(username));
+    }
+
+    @PutMapping("/update")
+    public Result updateUserInfo(@RequestBody @Validated User user) {
+        userService.updateUserInfo(user);
+
+        return Result.success();
+    }
+
+    @PatchMapping("/updateAvatar")
+    public Result updateAvatar(@RequestParam @URL String avatarUrl) {
+        userService.updateAvatar(avatarUrl);
+
+        return Result.success();
+    }
+
+    @PatchMapping("/updatePwd")
+    public Result updatePwd(@RequestBody Map<String, String> params) {
+        // Get Pwds from request body
+        String oldPwd = params.get("old_pwd");
+        String newPwd = params.get("new_pwd");
+        String rePwd = params.get("re_pwd");
+
+        // Check if Pwds is not null
+        if (
+            (!StringUtils.hasLength(oldPwd))
+            || (!StringUtils.hasLength(newPwd))
+            || (!StringUtils.hasLength(rePwd))
+        ) {
+            return Result.error("Invalid old password or new password");
+        }
+
+        // Check if oldPwd is matched from database
+        Map<String, Object> map = ThreadLocalUtil.get();
+        String username = (String) map.get("username");
+        User loginUser = userService.findByUserName(username);
+
+        if (!Md5Util.checkPassword(oldPwd, loginUser.getPassword())) {
+            return Result.error("Invalid old password");
+        }
+
+        // Check if newPwd is same with rePwd
+        if (!rePwd.equals(newPwd)) {
+            return Result.error("Passwords do not match");
+        }
+
+        userService.updatePwd(newPwd);
+
+        return Result.success();
     }
 }
