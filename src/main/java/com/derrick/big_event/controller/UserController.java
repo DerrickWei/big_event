@@ -5,6 +5,7 @@ import com.derrick.big_event.pojo.User;
 import com.derrick.big_event.service.UserService;
 import com.derrick.big_event.utils.JwtUtil;
 import com.derrick.big_event.utils.Md5Util;
+import com.derrick.big_event.utils.ThreadLocalUtil;
 import jakarta.validation.constraints.Pattern;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.validation.annotation.Validated;
@@ -58,9 +59,9 @@ public class UserController {
     }
 
     @GetMapping("/userInfo")
-    public Result<User> getUserInfo(@RequestHeader(name = "Authorization") String token) {
+    public Result<User> getUserInfo() {
         // Parse token from header
-        Map<String, Object> map = JwtUtil.parseToken(token);
+        Map<String, Object> map = ThreadLocalUtil.get();
 
         // Get username from JWT
         String username = (String) map.get("username");
