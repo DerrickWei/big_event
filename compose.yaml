@@ -9,3 +9,7 @@ services:
       MYSQL_PASSWORD: user
       MYSQL_DATABASE: big_event
 
+  redis:
+    image: redis
+    ports:
+      - '6379:6379'
