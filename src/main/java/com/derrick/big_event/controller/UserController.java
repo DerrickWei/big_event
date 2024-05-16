@@ -9,12 +9,15 @@ import com.derrick.big_event.utils.ThreadLocalUtil;
 import jakarta.validation.constraints.Pattern;
 import org.hibernate.validator.constraints.URL;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.data.redis.core.ValueOperations;
 import org.springframework.util.StringUtils;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 @RestController
 @RequestMapping("/api/v1/user")
@@ -23,6 +26,9 @@ public class UserController {
 
     @Autowired
     private final UserService userService;
+
+    @Autowired
+    private StringRedisTemplate stringRedisTemplate;
 
     public UserController(UserService userService) {
         this.userService = userService;
@@ -52,6 +58,11 @@ public class UserController {
                 Map<String, Object> claims = new HashMap<>();
                 claims.put("id", user.getId());
                 claims.put("username", username);
+
+                // Save token to redis with expires in 1 hour
+                String token = JwtUtil.genToken(claims);
+                ValueOperations<String, String> valueOperations = stringRedisTemplate.opsForValue();
+                valueOperations.set(token, token, 1, TimeUnit.HOURS);
 
                 return Result.success(JwtUtil.genToken(claims));
             }
@@ -86,7 +97,7 @@ public class UserController {
     }
 
     @PatchMapping("/updatePwd")
-    public Result updatePwd(@RequestBody Map<String, String> params) {
+    public Result updatePwd(@RequestBody Map<String, String> params, @RequestHeader("Authorization") String token) {
         // Get Pwds from request body
         String oldPwd = params.get("old_pwd");
         String newPwd = params.get("new_pwd");
@@ -116,6 +127,10 @@ public class UserController {
         }
 
         userService.updatePwd(newPwd);
+
+        // Remove redisToken
+        ValueOperations<String, String> valueOperations = stringRedisTemplate.opsForValue();
+        valueOperations.getOperations().delete(token);
 
         return Result.success();
     }
